@@ -7,8 +7,11 @@ const VALID_SCENE_TYPES = new Set(['combat', 'dialogue', 'exploration', 'decisio
 const VALID_MOODS = new Set(['tense', 'calm', 'mysterious', 'action', 'horror']);
 const VALID_ENVIRONMENTS = new Set([
   'neon-lit alley', 'abandoned warehouse', 'rooftop', 'corporate office',
-  'underground club', 'cyberspace', 'apartment', 'police station', 'generic urban'
+  'underground club', 'cyberspace', 'apartment', 'police station', 'generic urban',
+  'sewer', 'market', 'hospital'
 ]);
+const VALID_PARTICLES = new Set(['rain', 'smoke', 'sparks', 'embers', 'digital', 'none']);
+const VALID_CAMERA_STYLES = new Set(['static', 'slow-pan', 'orbit', 'shake']);
 
 /**
  * Parses raw AI text response into a scene object.
@@ -145,6 +148,12 @@ export function validateScene(scene) {
     }
     if (!Array.isArray(validated.visualScene.objects)) {
       validated.visualScene.objects = [];
+    }
+    if (!VALID_PARTICLES.has(validated.visualScene.particles)) {
+      validated.visualScene.particles = 'none';
+    }
+    if (!VALID_CAMERA_STYLES.has(validated.visualScene.cameraStyle)) {
+      validated.visualScene.cameraStyle = 'static';
     }
   }
 

@@ -1,6 +1,6 @@
 /**
  * Zustand global game state store.
- * Manages scene progression, world state, and save operations.
+ * Manages scene progression, world state, save operations, and game settings.
  */
 
 import { create } from 'zustand';
@@ -29,6 +29,15 @@ const INITIAL_WORLD_STATE = {
   completedScenes: 0
 };
 
+export const INITIAL_GAME_SETTINGS = {
+  language: 'pl',
+  customTheme: '',
+  brutality: 50,
+  action: 50,
+  profanity: 30,
+  darkness: 50,
+};
+
 export const useGameStore = create(
   persist(
     (set, get) => ({
@@ -38,21 +47,27 @@ export const useGameStore = create(
       sceneHistory: [],
       isGenerating: false,
       error: null,
+      gameSettings: { ...INITIAL_GAME_SETTINGS },
 
       // ── Actions ────────────────────────────────────────────────────────────
+
+      /** Update game settings (partial update) */
+      setGameSettings: (settings) => {
+        set(state => ({ gameSettings: { ...state.gameSettings, ...settings } }));
+      },
 
       /**
        * Start a new game: reset state and generate opening scene.
        */
       startNewGame: async () => {
+        const { gameSettings } = get();
         set({ isGenerating: true, error: null, currentScene: null, sceneHistory: [] });
 
         try {
-          const initialScene = await generateInitialScene();
+          const initialScene = await generateInitialScene(gameSettings);
 
           const freshWorldState = {
             ...INITIAL_WORLD_STATE,
-            // Apply any world state updates from the opening scene
             ...(initialScene.worldStateUpdates
               ? {
                   activeFacts: [
@@ -72,7 +87,6 @@ export const useGameStore = create(
             error: null
           });
 
-          // Autosave after game start
           autosave(get()).catch(console.warn);
         } catch (err) {
           console.error('[gameStore] startNewGame failed:', err);
@@ -88,7 +102,7 @@ export const useGameStore = create(
        * @param {number} choiceId
        */
       makeChoice: async (choiceId) => {
-        const { currentScene, worldState, sceneHistory } = get();
+        const { currentScene, worldState, sceneHistory, gameSettings } = get();
         if (!currentScene) return;
 
         const choice = currentScene.choices.find(c => c.id === choiceId);
@@ -100,9 +114,8 @@ export const useGameStore = create(
         set({ isGenerating: true, error: null });
 
         try {
-          const nextScene = await generateNextScene(worldState, choice);
+          const nextScene = await generateNextScene(worldState, choice, gameSettings);
 
-          // Apply world state updates from the new scene
           const updatedWorldState = applyWorldStateUpdates(
             worldState,
             nextScene.worldStateUpdates || {},
@@ -122,7 +135,6 @@ export const useGameStore = create(
             error: null
           });
 
-          // Autosave after each scene
           autosave(get()).catch(console.warn);
         } catch (err) {
           console.error('[gameStore] makeChoice failed:', err);
@@ -145,7 +157,7 @@ export const useGameStore = create(
       /**
        * Load game from a named slot.
        * @param {string} slotName
-       * @returns {Promise<boolean>} true if load succeeded
+       * @returns {Promise<boolean>}
        */
       loadFromSlot: async (slotName) => {
         const { loadGame } = await import('../services/saveSystem.js');
@@ -165,7 +177,7 @@ export const useGameStore = create(
       /** Clear any error state */
       clearError: () => set({ error: null }),
 
-      /** Go back one scene (undo) - loads from history */
+      /** Go back one scene (undo) */
       goBack: () => {
         const { sceneHistory } = get();
         if (sceneHistory.length === 0) return;
@@ -181,11 +193,11 @@ export const useGameStore = create(
     }),
     {
       name: 'infinite-paths-storage',
-      // Only persist non-ephemeral state
       partialize: (state) => ({
         currentScene: state.currentScene,
         worldState: state.worldState,
-        sceneHistory: state.sceneHistory
+        sceneHistory: state.sceneHistory,
+        gameSettings: state.gameSettings
       })
     }
   )

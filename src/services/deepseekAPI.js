@@ -3,15 +3,11 @@
  * Handles scene generation with retry logic and response validation.
  */
 
-import { SYSTEM_PROMPT, INITIAL_SCENE_PROMPT, buildContinuationPrompt } from '../utils/promptBuilder.js';
+import { buildSystemPrompt, buildInitialScenePrompt, buildContinuationPrompt } from '../utils/promptBuilder.js';
 import { parseAIResponse, validateScene } from '../utils/stateValidator.js';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
-/**
- * Gets the API key from environment variables.
- * @returns {string}
- */
 function getApiKey() {
   const key = import.meta.env.VITE_DEEPSEEK_API_KEY;
   if (!key) {
@@ -23,18 +19,20 @@ function getApiKey() {
 }
 
 /**
- * Calls the DeepSeek API with a given prompt.
+ * Calls the DeepSeek API.
  * @param {string} userPrompt
- * @param {number} retries - Number of retry attempts on failure
- * @returns {Promise<string>} raw response text
+ * @param {Object} settings - Game settings for dynamic system prompt
+ * @param {number} retries
+ * @returns {Promise<string>}
  */
-async function callDeepSeek(userPrompt, retries = 2) {
+async function callDeepSeek(userPrompt, settings = {}, retries = 2) {
   const apiKey = getApiKey();
+  const systemPrompt = buildSystemPrompt(settings);
 
   const body = {
     model: 'deepseek-reasoner',
     messages: [
-      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'system', content: systemPrompt },
       { role: 'user', content: userPrompt }
     ],
     temperature: 0.8,
@@ -58,8 +56,6 @@ async function callDeepSeek(userPrompt, retries = 2) {
       }
 
       const data = await response.json();
-
-      // DeepSeek Reasoner returns content in choices[0].message.content
       const content = data?.choices?.[0]?.message?.content;
       if (!content) {
         throw new Error('Empty response from DeepSeek API');
@@ -67,10 +63,7 @@ async function callDeepSeek(userPrompt, retries = 2) {
 
       return content;
     } catch (err) {
-      if (attempt === retries) {
-        throw err;
-      }
-      // Exponential backoff: 1s, 2s, 4s
+      if (attempt === retries) throw err;
       await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
     }
   }
@@ -78,10 +71,12 @@ async function callDeepSeek(userPrompt, retries = 2) {
 
 /**
  * Generates the initial scene when the game starts.
- * @returns {Promise<Object>} validated scene object
+ * @param {Object} settings - Game settings
+ * @returns {Promise<Object>}
  */
-export async function generateInitialScene() {
-  const rawText = await callDeepSeek(INITIAL_SCENE_PROMPT);
+export async function generateInitialScene(settings = {}) {
+  const prompt = buildInitialScenePrompt(settings);
+  const rawText = await callDeepSeek(prompt, settings);
   const parsed = parseAIResponse(rawText);
   const { valid, scene, errors } = validateScene(parsed);
 
@@ -97,14 +92,15 @@ export async function generateInitialScene() {
 }
 
 /**
- * Generates the next scene based on player choice and current world state.
- * @param {Object} worldState - Current game world state
- * @param {Object} choice - Player's chosen option
- * @returns {Promise<Object>} validated scene object
+ * Generates the next scene based on player choice and world state.
+ * @param {Object} worldState
+ * @param {Object} choice
+ * @param {Object} settings - Game settings
+ * @returns {Promise<Object>}
  */
-export async function generateNextScene(worldState, choice) {
-  const prompt = buildContinuationPrompt(worldState, choice);
-  const rawText = await callDeepSeek(prompt);
+export async function generateNextScene(worldState, choice, settings = {}) {
+  const prompt = buildContinuationPrompt(worldState, choice, settings);
+  const rawText = await callDeepSeek(prompt, settings);
   const parsed = parseAIResponse(rawText);
   const { valid, scene, errors } = validateScene(parsed);
 

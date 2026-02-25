@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Base styles ──────────────────────────────────────────────────────────── */
+/* ─── Base styles ───────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -17,48 +17,98 @@ html, body, #root {
   color: #fff;
 }
 
-/* ─── Cyberpunk custom font ────────────────────────────────────────────────── */
 body {
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─── Scrollbar styling (dark cyberpunk) ───────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: #050508;
-}
-::-webkit-scrollbar-thumb {
-  background: #1a3a4a;
-  border-radius: 2px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #00aacc;
-}
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: #050508; }
+::-webkit-scrollbar-thumb { background: #1a3a4a; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #00aacc; }
 
-/* ─── Neon text glow utilities ─────────────────────────────────────────────── */
-.glow-cyan {
-  text-shadow: 0 0 8px #00ffff, 0 0 16px #00ffff;
-}
-.glow-red {
-  text-shadow: 0 0 8px #ff0040, 0 0 16px #ff0040;
-}
-.glow-purple {
-  text-shadow: 0 0 8px #aa00ff, 0 0 16px #aa00ff;
-}
-
-/* ─── Canvas fill ──────────────────────────────────────────────────────────── */
+/* ─── Canvas fill ───────────────────────────────────────────────────────────── */
 canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
 }
 
-/* ─── Custom animations ────────────────────────────────────────────────────── */
+/* ─── Neon glow utilities ───────────────────────────────────────────────────── */
+.glow-cyan   { text-shadow: 0 0 8px #00ffff, 0 0 16px #00ffff; }
+.glow-red    { text-shadow: 0 0 8px #ff0040, 0 0 16px #ff0040; }
+.glow-purple { text-shadow: 0 0 8px #aa00ff, 0 0 16px #aa00ff; }
+
+/* ─── HUD button ────────────────────────────────────────────────────────────── */
+.hud-btn {
+  background: rgba(0,0,0,0.6);
+  border: 1px solid #1f1f1f;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #555;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.hud-btn:hover {
+  color: #bbb;
+  border-color: #444;
+}
+.hud-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ─── Custom range slider ───────────────────────────────────────────────────── */
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(255,255,255,0.6);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+  box-shadow: 0 0 10px rgba(255,255,255,0.9);
+}
+
+input[type='range']::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 6px rgba(255,255,255,0.6);
+}
+
+/* ─── Intro step transition ─────────────────────────────────────────────────── */
+@keyframes stepIn {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.step-enter {
+  animation: stepIn 0.3s ease forwards;
+}
+
+/* ─── Animations ────────────────────────────────────────────────────────────── */
 @keyframes flicker {
   0%, 95%, 100% { opacity: 1; }
   96% { opacity: 0.4; }
@@ -66,12 +116,22 @@ canvas {
   98% { opacity: 0.2; }
   99% { opacity: 1; }
 }
-
-.animate-flicker {
-  animation: flicker 4s infinite;
-}
+.animate-flicker { animation: flicker 4s infinite; }
 
 @keyframes scanlines {
-  0% { background-position: 0 0; }
+  0%   { background-position: 0 0; }
   100% { background-position: 0 4px; }
+}
+
+@keyframes floatUp {
+  0%   { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
+}
+
+/* ─── Mobile improvements ───────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .hud-btn {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
 }
